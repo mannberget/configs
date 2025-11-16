@@ -8,7 +8,7 @@
 # ==========================
 
 font-size = 15
-theme = catppuccin-mocha
+theme = Catppuccin Mocha
 window-decoration = false
 cursor-style-blink = false
 background-opacity = 0.9

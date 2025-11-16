@@ -33,6 +33,7 @@ opt.cmdheight = 1
 -- opt.wildmenu = true
 opt.undofile = true
 g.mapleader = " "
+opt.clipboard = "unnamedplus"
 
 -- Toggle cursorline only on active window
 vim.cmd [[
@@ -46,12 +47,12 @@ augroup END
 -- remove all background (and non focused windows!)
 vim.cmd [[
   colorscheme nordic
-  highlight Normal guibg=NONE ctermbg=NONE
-  highlight NormalNC guibg=NONE ctermbg=NONE
-  highlight NonText guibg=NONE ctermbg=NONE
-  highlight EndOfBuffer guibg=NONE ctermbg=NONE
-  highlight LineNr guibg=NONE ctermbg=NONE
-  highlight SignColumn guibg=NONE ctermbg=NONE
+  " highlight Normal guibg=NONE ctermbg=NONE
+  " highlight NormalNC guibg=NONE ctermbg=NONE
+  " highlight NonText guibg=NONE ctermbg=NONE
+  " highlight EndOfBuffer guibg=NONE ctermbg=NONE
+  " highlight LineNr guibg=NONE ctermbg=NONE
+  " highlight SignColumn guibg=NONE ctermbg=NONE
 
   highlight WinSeparator guibg=NONE guifg=gray
 
@@ -140,6 +141,19 @@ require('telescope').setup{
   },
 }
 
+-- Make it so that all html files are opened with the htmldjango filetype
+vim.cmd [[
+  autocmd BufRead,BufNewFile *.html set filetype=htmldjango
+]]
+
+-- Create an autocommand that sets wrap only for markdown files
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "markdown",
+  callback = function()
+    vim.opt_local.wrap = true  -- Set wrap for the current buffer only
+  end,
+})
+
 -- TreeSitter
 require('nvim-treesitter.configs').setup {
   ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline", "go", "javascript" },
@@ -168,14 +182,14 @@ require('oil').setup({
   }
 })
 
-require('ibl').setup({
-  indent = {
-    highlight = "IndentBlanklineChar"
-  },
-  scope = {
-    enabled = false,
-  }
-})
+-- require('ibl').setup({
+--   indent = {
+--     highlight = "IndentBlanklineChar"
+--   },
+--   scope = {
+--     enabled = false,
+--   }
+-- })
 
 -- LSP
 vim.api.nvim_create_autocmd('LspAttach', {
