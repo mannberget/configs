@@ -12,3 +12,4 @@ theme = Catppuccin Mocha
 window-decoration = false
 cursor-style-blink = false
 background-opacity = 0.9
+keybind = shift+enter=text:\x1b\r
