@@ -99,7 +99,7 @@ function M.update_lsp()
   end
 
   -- Restore to normal highlight after the diagnostics
-  return errors .. warnings .. '%#Normal#'
+  return errors .. warnings .. '%#StatusLine#'
 
 end
 
@@ -125,7 +125,7 @@ end
 -- Status line format
 state.full_status = {
   '%{%v:lua._statusline_component("mode")%} ',
-  '%#Normal#',
+  '%#StatusLine#',
   '%{%v:lua._statusline_component("git_branch")%} ',
   '%{%v:lua._statusline_component("filepath")%}',
   '%{%v:lua._statusline_component("filename")%}',

@@ -1,41 +1,86 @@
-local cmd = vim.cmd  -- to execute Vim commands e.g. cmd('pwd')
-local fn = vim.fn    -- to call Vim functions e.g. fn.bufnr()
-local g = vim.g      -- a table to access global variables
-local opt = vim.opt  -- to set options
+local cmd = vim.cmd
+local fn = vim.fn
+local g = vim.g
+local opt = vim.opt
 
 local function map(mode, lhs, rhs, opts)
   local options = { noremap = true }
   if opts then options = vim.tbl_extend('force', options, opts) end
-  vim.api.nvim_set_keymap(mode, lhs, rhs, options)
+  vim.keymap.set(mode, lhs, rhs, options) -- Updated to native vim.keymap.set but kept your logic
 end
 
-require('statusline').setup{}
+--- Lazy.nvim ---
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
+  vim.fn.system({ "git", "clone", "--filter=blob:none", "https://github.com/folke/lazy.nvim.git", "--branch=stable", lazypath })
+end
+vim.opt.rtp:prepend(lazypath)
 
-opt.compatible = false              -- some vi-compatibility stuff
+require("lazy").setup({
+  {
+    "nvim-treesitter/nvim-treesitter",
+    branch = 'master',
+    lazy = false,
+    build = ":TSUpdate",
+    config = function()
+      local configs = require("nvim-treesitter.configs")
+      configs.setup({
+        -- Removed: c, lua, vim, vimdoc, query (Neovim 0.11 provides these)
+        ensure_installed = { "markdown", "markdown_inline", "go", "javascript", "python", "html", "css", "json", "typescript", "bash", "yaml", "toml", "dockerfile", },
+        highlight = {
+          enable = true,
+          disable = function(lang, buf)
+            local max_filesize = 100 * 1024
+            local ok, stats = pcall(vim.uv.fs_stat, vim.api.nvim_buf_get_name(buf))
+            if ok and stats and stats.size > max_filesize then return true end
+          end,
+        },
+        indent = { enable = true },
+        sync_install = false,
+        auto_install = true, 
+      })
+    end,
+  },
+  { "neovim/nvim-lspconfig" },
+  { "nvim-lua/plenary.nvim" },
+  { "nvim-telescope/telescope.nvim"},
+  { "stevearc/oil.nvim" },
+  { "folke/ts-comments.nvim" },
+  { "nvimtools/none-ls.nvim" },
+  { "github/copilot.vim" },
+  { "saghen/blink.cmp"},
+}, {
+  defaults = { lazy = false },
+  install = { missing = true },
+})
+
+-- Load custom plugin
+pcall(require('statusline').setup, {})
+
+
+--- OPTIONS ---
+opt.compatible = false
 opt.timeoutlen = 300
 opt.guicursor = ""
-opt.number = true                   -- show line numbers
+opt.number = true
 opt.visualbell = true
-opt.tabstop = 2                     -- number of spaces tabs count for
+opt.tabstop = 2
 opt.softtabstop = 2
-opt.shiftwidth = 2                  -- size of an indent
+opt.shiftwidth = 2
 opt.expandtab = true
-opt.hlsearch = true                 -- highlight searches
+opt.hlsearch = true
 opt.incsearch = true
 opt.scrolloff = 6
 opt.laststatus = 2
-opt.splitright = true               -- put new windows right of current
-opt.smartindent = true              -- insert indents automatically
-opt.termguicolors = true            -- true color support
+opt.splitright = true
+opt.smartindent = true
+opt.termguicolors = true
 opt.wrap = false
 opt.encoding = "utf-8"
 opt.cmdheight = 1
--- opt.wildmenu = true
-opt.undofile = true
-g.mapleader = " "
-opt.clipboard = "unnamedplus"
 
--- Toggle cursorline only on active window
+g.mapleader = " "
+
 vim.cmd [[
 augroup CursorLine
     au!
@@ -44,18 +89,10 @@ augroup CursorLine
 augroup END
 ]]
 
--- remove all background (and non focused windows!)
+-- Highlight settings
 vim.cmd [[
-  colorscheme nordic
-  " highlight Normal guibg=NONE ctermbg=NONE
-  " highlight NormalNC guibg=NONE ctermbg=NONE
-  " highlight NonText guibg=NONE ctermbg=NONE
-  " highlight EndOfBuffer guibg=NONE ctermbg=NONE
-  " highlight LineNr guibg=NONE ctermbg=NONE
-  " highlight SignColumn guibg=NONE ctermbg=NONE
-
+  highlight Normal guibg=NONE
   highlight WinSeparator guibg=NONE guifg=gray
-
   highlight TelescopeResultsBorder guifg=white
   highlight TelescopePreviewBorder guifg=white
   highlight TelescopePromptBorder guifg=white
@@ -63,71 +100,49 @@ vim.cmd [[
   highlight link markdownError NONE
 ]]
 
--- restore position in file
+-- Restore cursor position when reopening files
 vim.cmd [[
   autocmd BufReadPost * if &ft !~# 'commit\|rebase' && line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 ]]
 
--- Disable netrw
+-- Disable netrw at the very start of your init.lua
 g.loaded_netrw = 1
 g.loaded_netrwPlugin = 1
 
-vim.cmd("nnoremap <expr> <C-j> (winheight(0) / 5) . '<C-e>' . (winheight(0) / 5) . 'j'") -- small scroll down
-vim.cmd("nnoremap <expr> <C-k> (winheight(0) / 5) . '<C-y>' . (winheight(0) / 5) . 'k'") -- small scroll down
-map('n', '<leader>o', 'o<Esc>')                 -- insert newline from normal mode
-map('n', '<leader>O', 'O<Esc>')                 -- insert newline from normal mode
-map("n", "-", "<CMD>Oil<CR>",           -- open oil
-    { desc = "Open oil" })
-map('v', '<leader>y', '"+y')                    -- yank into system clipboard
-map('n', '<leader>y', '"+y')                    -- yank into system clipboard
-map('v', '<leader>p', '"_dP')                   -- paste without overwrite register
-map('n', '<leader>cc', 'gcc',                   -- comment line
-    { noremap = false })
-map('v', '<leader>c', 'gc',                     -- comment selection
-    { noremap = false })
-map("n", "<leader>ff",                          -- find files
-  ":lua require'telescope.builtin'.find_files()<CR>",
-  { silent = true })
-map("n", "<leader>fb",                          -- find buffers
-  ":lua require'telescope.builtin'.buffers()<CR>",
-  { silent = true })
-map("n", "<leader>fg",                          -- grep 
-  ":lua require'telescope.builtin'.live_grep()<CR>",
-  { silent = true })
-map("n", "<leader>sv", "<C-w>v")                -- split window vertically
-map("n", "<leader>sh", "<C-w>s")                -- split window horizontally
-map("n", "<leader>se", "<C-w>=")                -- make split windows equal width & height
-map("n", "<leader>sx", ":close<CR>")            -- close current split window
-map("n", "<leader>gt", "<C-]>")                 -- go to tag
-map("n", "<leader>j", "<cmd>cnext<CR>")         -- next quickfix
-map("n", "<leader>k", "<cmd>cprev<CR>")         -- prev quickfix
-map("n", "<leader>l", "<cmd>cnfile<CR>")        -- next quickfix file
-map("n", "<leader>h", "<cmd>cpfile<CR>")        -- prev quickfix file
-map("v", "<Tab>", ">gv")                        -- indent selection
-map("v", "<S-Tab>", "<gv")                      -- unindent selection
-map("n", "H", "^")                              -- go to beginning of line
-map("n", "L", "$")                              -- go to end of line
-map('n', '<leader>o', 'o<Esc>')                 -- insert newline from normal mode
-
-map('n', '<C-l>',                           -- make split larger
-  '<cmd>vertical resize +5<CR>')
-map('n', '<C-h>',                           -- make split smaller
-  '<cmd>vertical resize -5<CR>')
+--- KEYMAPS ---
+vim.cmd("nnoremap <expr> <C-j> (winheight(0) / 5) . '<C-e>' . (winheight(0) / 5) . 'j'")
+vim.cmd("nnoremap <expr> <C-k> (winheight(0) / 5) . '<C-y>' . (winheight(0) / 5) . 'k'")
+map('n', '<leader>o', 'o<Esc>')
+map('n', '<leader>O', 'O<Esc>')
+map("n", "-", "<CMD>Oil<CR>", { desc = "Open oil" })
+map('v', '<leader>y', '"+y')
+map('n', '<leader>y', '"+y')
+map('v', '<leader>p', '"_dP')
+map('n', '<leader>cc', 'gcc', { noremap = false })
+map('v', '<leader>c', 'gc', { noremap = false })
+map("n", "<leader>ff", ":lua require'telescope.builtin'.find_files()<CR>", { silent = true })
+map("n", "<leader>fb", ":lua require'telescope.builtin'.buffers()<CR>", { silent = true })
+map("n", "<leader>fg", ":lua require'telescope.builtin'.live_grep()<CR>", { silent = true })
+map("n", "<leader>sv", "<C-w>v")
+map("n", "<leader>sh", "<C-w>s")
+map("n", "<leader>se", "<C-w>=")
+map("n", "<leader>sx", ":close<CR>")
+map("n", "<leader>gt", "<C-]>")
+map("n", "<leader>j", "<cmd>cnext<CR>")
+map("n", "<leader>k", "<cmd>cprev<CR>")
+map("n", "<leader>l", "<cmd>cnfile<CR>")
+map("n", "<leader>h", "<cmd>cpfile<CR>")
+map("v", "<Tab>", ">gv")
+map("v", "<S-Tab>", "<gv")
+map("n", "H", "^")
+map("n", "L", "$")
+map('n', '<C-l>', '<cmd>vertical resize +5<CR>')
+map('n', '<C-h>', '<cmd>vertical resize -5<CR>')
 
 -- Telescope
 require('telescope').setup{
   defaults = {
-    file_ignore_patterns = {
-            "node_modules/.*",
-            "local_packages/.*",
-            "%.env",
-            "yarn.lock",
-            "package-lock.json",
-            "lazy-lock.json",
-            "init.sql",
-            "target/.*",
-            ".git/.*",
-        },
+    file_ignore_patterns = { "node_modules/.*", "local_packages/.*", "%.env", "yarn.lock", "package-lock.json", "lazy-lock.json", "init.sql", "target/.*", ".git/.*" },
     mappings = {
       i = {
         ["<esc>"] = require('telescope.actions').close,
@@ -141,137 +156,67 @@ require('telescope').setup{
   },
 }
 
--- Make it so that all html files are opened with the htmldjango filetype
-vim.cmd [[
-  autocmd BufRead,BufNewFile *.html set filetype=htmldjango
-]]
+-- Set htmldjango filetype for .html files
+vim.cmd [[ autocmd BufRead,BufNewFile *.html set filetype=htmldjango ]]
 
--- Create an autocommand that sets wrap only for markdown files
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "markdown",
-  callback = function()
-    vim.opt_local.wrap = true  -- Set wrap for the current buffer only
-  end,
+  callback = function() vim.opt_local.wrap = true end,
 })
-
--- TreeSitter
-require('nvim-treesitter.configs').setup {
-  ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline", "go", "javascript" },
-  sync_install = true,
-  auto_install = true,
-  highlight = {
-    enable = true,
-    disable = function(lang, buf)
-      local max_filesize = 100 * 1024 -- 100 KB
-      local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-      if ok and stats and stats.size > max_filesize then
-        return true
-      end
-    end,
-    additional_vim_regex_highlighting = false,
-  },
-}
 
 require('oil').setup({
   view_options = {
     show_hidden = true,
-    is_always_hidden = function(name, bufnr)
-      local m = name:match(".*_templ.*$")
-      return m ~= nil
-    end
+    is_always_hidden = function(name, bufnr) return name:match(".*_templ.*$") ~= nil end
   }
 })
 
--- require('ibl').setup({
---   indent = {
---     highlight = "IndentBlanklineChar"
---   },
---   scope = {
---     enabled = false,
---   }
--- })
-
--- LSP
+-- Your original LspAttach logic
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
     local bufnr = args.buf
     local client = vim.lsp.get_client_by_id(args.data.client_id)
     local bufopts = { noremap=true, silent=true, buffer=bufnr }
+    if client == nil then return end
 
-    if client == nil then
-      return
-    end
+    if client.name == 'ruff' then client.server_capabilities.hoverProvider = false end
+    if client.name == 'pyright' then client.server_capabilities.publishDiagnostics = false end
 
-    if client.name == 'ruff' then
-      client.server_capabilities.hoverProvider = false
-    end
+    vim.keymap.set('n', 'gE', vim.diagnostic.goto_prev, bufopts)
+    vim.keymap.set('n', 'ge', vim.diagnostic.goto_next, bufopts)
+    vim.keymap.set('n', '<leader>ge', function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR }) end, bufopts)
 
-    if client.name == 'pyright' then
-      client.server_capabilities.publishDiagnostics = false
-    end
-
-    vim.keymap.set('n', 'gE', vim.diagnostic.goto_prev, { noremap=true, silent=true })
-    vim.keymap.set('n', 'ge', vim.diagnostic.goto_next, { noremap=true, silent=true })
-    vim.keymap.set('n', '<leader>ge', function() vim.diagnostic.goto_next({
-      severity = vim.diagnostic.severity.ERROR }) end, { noremap=true,
-      silent=true })
-
-    if client.server_capabilities.completionProvider then
-      vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc"
-    end
-
-    if client.server_capabilities.definitionProvider then
-      vim.bo[bufnr].tagfunc = "v:lua.vim.lsp.tagfunc"
-    end
-
-    if client.supports_method('textDocument/rename') then
-      vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, bufopts)
-    end
-
-    if client.supports_method('textDocument/definition') then
-      vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts)
-    end
-
-    if client.supports_method('textDocument/references') then
-      vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts)
-    end
-
-    if client.supports_method('textDocument/formatting') then
-      vim.keymap.set('n', '<leader>fo', vim.lsp.buf.format, bufopts)
-    end
-
-    if client.supports_method('textDocument/codeAction') then
-      vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, bufopts)
-    end
-
-    if client.supports_method('textDocument/implementation') then
-      vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts)
-    end
+    if client.server_capabilities.completionProvider then vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc" end
+    if client.server_capabilities.definitionProvider then vim.bo[bufnr].tagfunc = "v:lua.vim.lsp.tagfunc" end
+    if client.supports_method('textDocument/rename') then vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, bufopts) end
+    if client.supports_method('textDocument/definition') then vim.keymap.set('n', 'gd', vim.lsp.buf.definition, bufopts) end
+    if client.supports_method('textDocument/references') then vim.keymap.set('n', 'gr', vim.lsp.buf.references, bufopts) end
+    if client.supports_method('textDocument/formatting') then vim.keymap.set('n', '<leader>fo', vim.lsp.buf.format, bufopts) end
+    if client.supports_method('textDocument/codeAction') then vim.keymap.set('n', '<space>ca', vim.lsp.buf.code_action, bufopts) end
+    if client.supports_method('textDocument/implementation') then vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, bufopts) end
   end,
 })
 
 
--- Language Server Integrations:
-lspconfig = require('lspconfig')
+-- Modern Language Server Integrations (Neovim 0.11 style)
+vim.lsp.config('gopls', {})
+vim.lsp.config('ruff', {})
+vim.lsp.config('ccls', {
+  init_options = {
+    compilationDatabaseDirectory = "build",
+    index = { threads = 0 },
+  }
+})
 
-
-lspconfig.gopls.setup{}
-
-lspconfig.ruff.setup{}
-
-lspconfig.pyright.setup {
+vim.lsp.config('pyright', {
   settings = {
     pyright = {
-      -- Using Ruff's import organizer
       disableOrganizeImports = true,
       useLibraryCodeForTypes = false,
     },
     python = {
       analysis = {
-        -- Ignore all files for analysis to exclusively use Ruff for linting
         ignore = { '*' },
-
-        -- Disable as much as possible
         diagnosticMode = "openFilesOnly",
         typeCheckingMode = "off",
         autoSearchPaths = false,
@@ -279,8 +224,15 @@ lspconfig.pyright.setup {
       },
     },
   },
-}
+})
 
+-- Enable the language servers
+vim.lsp.enable('gopls')
+vim.lsp.enable('ruff')
+vim.lsp.enable('pyright')
+vim.lsp.enable('ccls')
+
+-- Setup null-ls
 local null_ls = require("null-ls")
 
 null_ls.setup({
@@ -289,15 +241,5 @@ null_ls.setup({
         null_ls.builtins.diagnostics.djlint,
     },
 })
-
-
-lspconfig.ccls.setup{
-  init_options = {
-    compilationDatabaseDirectory = "build";
-    index = {
-      threads = 0;
-    };
-  }
-}
 
 require('ts-comments').setup{}
