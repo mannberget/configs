@@ -10,7 +10,7 @@
 font-size = 15
 theme = Catppuccin Mocha
 term = xterm-256color
-# window-decoration = false
+window-decoration = false
 cursor-style-blink = false
 background-opacity = 0.9
 keybind = shift+enter=text:\x1b\r
