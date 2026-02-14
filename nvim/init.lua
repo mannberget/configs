@@ -35,6 +35,7 @@ opt.termguicolors = true
 opt.wrap = false
 opt.encoding = "utf-8"
 opt.cmdheight = 1
+opt.undofile = true
 
 g.mapleader = " "
 
