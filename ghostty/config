@@ -12,5 +12,5 @@ theme = Catppuccin Mocha
 term = xterm-256color
 window-decoration = false
 cursor-style-blink = false
-background-opacity = 0.9
+background-opacity = 0.5
 keybind = shift+enter=text:\x1b\r

@@ -14,15 +14,16 @@ vim.api.nvim_create_autocmd("LspAttach", {
 
     if client.server_capabilities.completionProvider then vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc" end
     if client.server_capabilities.definitionProvider then vim.bo[bufnr].tagfunc = "v:lua.vim.lsp.tagfunc" end
-    if client.supports_method("textDocument/rename") then vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts) end
-    if client.supports_method("textDocument/definition") then vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts) end
-    if client.supports_method("textDocument/references") then vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts) end
-    if client.supports_method("textDocument/formatting") then vim.keymap.set("n", "<leader>fo", vim.lsp.buf.format, bufopts) end
-    if client.supports_method("textDocument/codeAction") then vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, bufopts) end
-    if client.supports_method("textDocument/implementation") then vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts) end
+    if client:supports_method("textDocument/rename") then vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, bufopts) end
+    if client:supports_method("textDocument/definition") then vim.keymap.set("n", "gd", vim.lsp.buf.definition, bufopts) end
+    if client:supports_method("textDocument/references") then vim.keymap.set("n", "gr", vim.lsp.buf.references, bufopts) end
+    if client:supports_method("textDocument/formatting") then vim.keymap.set("n", "<leader>fo", vim.lsp.buf.format, bufopts) end
+    if client:supports_method("textDocument/codeAction") then vim.keymap.set("n", "<space>ca", vim.lsp.buf.code_action, bufopts) end
+    if client:supports_method("textDocument/implementation") then vim.keymap.set("n", "gi", vim.lsp.buf.implementation, bufopts) end
   end,
 })
 
+vim.lsp.config("zls", {})
 vim.lsp.config("gopls", {})
 vim.lsp.config("ruff", {})
 vim.lsp.config("ccls", {
@@ -50,6 +51,7 @@ vim.lsp.config("pyright", {
   },
 })
 
+vim.lsp.enable("zls")
 vim.lsp.enable("gopls")
 vim.lsp.enable("ruff")
 vim.lsp.enable("pyright")

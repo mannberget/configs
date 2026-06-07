@@ -31,11 +31,31 @@ local mode_map = {
   ["t"] = "TERMINAL",
 }
 
+local mode_hl_map = {
+  n   = 'StatusLineModeNormal',
+  no  = 'StatusLineModeNormal',
+  i   = 'StatusLineModeInsert',
+  ic  = 'StatusLineModeInsert',
+  v   = 'StatusLineModeVisual',
+  V   = 'StatusLineModeVisual',
+  ['\22'] = 'StatusLineModeVisual',
+  s   = 'StatusLineModeVisual',
+  S   = 'StatusLineModeVisual',
+  R   = 'StatusLineModeReplace',
+  Rv  = 'StatusLineModeReplace',
+  c   = 'StatusLineModeCommand',
+  cv  = 'StatusLineModeCommand',
+  ce  = 'StatusLineModeCommand',
+  ['!'] = 'StatusLineModeOther',
+  t   = 'StatusLineModeOther',
+}
+
 -- Mode function based on mode_map
 function state.mode()
   local current_mode = vim.api.nvim_get_mode().mode
-  local mode_name = mode_map[current_mode] or "UNKNOWN"
-  return string.format("   %s ", mode_name):upper()
+  local mode_name = mode_map[current_mode] or 'UNKNOWN'
+  local hl = mode_hl_map[current_mode] or 'StatusLineModeOther'
+  return string.format('%%#%s#   %s ', hl, mode_name:upper())
 end
 
 function M.update_git_branch()
@@ -146,16 +166,38 @@ state.inactive_status = {
 }
 
 -- Setup function for autocommands and to apply statusline
+-- Skip plugin/scratch windows (Telescope, prompts, etc.) so we don't stamp
+-- our custom statusline onto them.
+local function is_excluded()
+  local bt = vim.bo.buftype
+  if bt == 'prompt' or bt == 'nofile' then return true end
+  if vim.bo.filetype:match('^Telescope') then return true end
+  return false
+end
+
 function M.setup()
   local augroup = vim.api.nvim_create_augroup('statusline_cmds', { clear = true })
   local autocmd = vim.api.nvim_create_autocmd
 
   vim.opt.showmode = false
 
+  -- Base statusline: dark bg, dim text
+  vim.api.nvim_set_hl(0, 'StatusLine',   { bg = '#1c1c1c', fg = '#767676' })
+  vim.api.nvim_set_hl(0, 'StatusLineNC', { bg = '#121212', fg = '#3c3c3c' })
+
+  -- Mode-specific highlights (same dark bg, colored fg from habamax palette)
+  vim.api.nvim_set_hl(0, 'StatusLineModeNormal',  { bg = '#1c1c1c', fg = '#dddddd', bold = true })
+  vim.api.nvim_set_hl(0, 'StatusLineModeInsert',  { bg = '#1c1c1c', fg = '#5f87af', bold = true })
+  vim.api.nvim_set_hl(0, 'StatusLineModeVisual',  { bg = '#1c1c1c', fg = '#af87af', bold = true })
+  vim.api.nvim_set_hl(0, 'StatusLineModeReplace', { bg = '#1c1c1c', fg = '#d75f5f', bold = true })
+  vim.api.nvim_set_hl(0, 'StatusLineModeCommand', { bg = '#1c1c1c', fg = '#af875f', bold = true })
+  vim.api.nvim_set_hl(0, 'StatusLineModeOther',   { bg = '#1c1c1c', fg = '#767676', bold = true })
+
   -- Setting up the statusline for active windows
   autocmd('WinEnter', {
     group = augroup,
     callback = function()
+      if is_excluded() then return end
       vim.wo.statusline = M.get_status('full')
     end
   })
@@ -169,6 +211,7 @@ function M.setup()
   autocmd('BufEnter', {
     group = augroup,
     callback = function()
+      if is_excluded() then return end
       cache.branch = M.update_git_branch()
       cache.lsp = M.update_lsp()
       vim.wo.statusline = M.get_status('full')
