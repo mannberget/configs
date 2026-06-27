@@ -1,3 +1,11 @@
+vim.diagnostic.config({
+  jump = {
+    on_jump = function(_, bufnr)
+      vim.diagnostic.open_float({ bufnr = bufnr, scope = "cursor", focus = false })
+    end,
+  },
+})
+
 vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(args)
     local bufnr = args.buf
@@ -8,9 +16,9 @@ vim.api.nvim_create_autocmd("LspAttach", {
     if client.name == "ruff" then client.server_capabilities.hoverProvider = false end
     if client.name == "pyright" then client.server_capabilities.publishDiagnostics = false end
 
-    vim.keymap.set("n", "gE", vim.diagnostic.goto_prev, bufopts)
-    vim.keymap.set("n", "ge", vim.diagnostic.goto_next, bufopts)
-    vim.keymap.set("n", "<leader>ge", function() vim.diagnostic.goto_next({ severity = vim.diagnostic.severity.ERROR }) end, bufopts)
+    vim.keymap.set("n", "gE", function() vim.diagnostic.jump({ count = -1 }) end, bufopts)
+    vim.keymap.set("n", "ge", function() vim.diagnostic.jump({ count = 1 }) end, bufopts)
+    vim.keymap.set("n", "<leader>ge", function() vim.diagnostic.jump({ count = 1, severity = vim.diagnostic.severity.ERROR }) end, bufopts)
 
     if client.server_capabilities.completionProvider then vim.bo[bufnr].omnifunc = "v:lua.vim.lsp.omnifunc" end
     if client.server_capabilities.definitionProvider then vim.bo[bufnr].tagfunc = "v:lua.vim.lsp.tagfunc" end
